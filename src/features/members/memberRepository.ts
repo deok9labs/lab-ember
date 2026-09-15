@@ -1,0 +1,162 @@
+/** 화면에 공개할 수 있는 팀원 정보다. */
+export type Member = {
+  id: string
+  name: string
+  status: string
+  updated: string
+  sortOrder: number
+}
+
+type MembersApiResponse = {
+  ok: boolean
+  members?: unknown
+}
+
+/** 현재 주 범위와 그 주에 표시할 팀원 목록이다. */
+export type CurrentSchedule = {
+  weekStart: string
+  weekEnd: string
+  members: Member[]
+  availability: AvailabilityEntry[]
+}
+
+/** 일정 저장 API에 전달하는 날짜와 30분 시간 슬롯이다. */
+export type ScheduleSlot = {
+  date: string
+  time: string
+}
+
+/** 한 팀원이 하루 동안 선택한 시간과 저장 버전이다. */
+export type AvailabilityEntry = {
+  memberId: string
+  date: string
+  slots: string[]
+  updatedAt: string
+  revision: number
+}
+
+/**
+ * Apps Script가 반환한 값을 화면 계약에 맞게 검증하고 변환한다.
+ * 스프레드시트의 예기치 않은 값이 렌더링 계층까지 전파되지 않도록 필수 필드를 확인한다.
+ */
+export async function fetchMembers(endpoint: string, signal?: AbortSignal): Promise<Member[]> {
+  const url = new URL(endpoint)
+  url.searchParams.set('action', 'members')
+
+  const response = await fetch(url, { method: 'GET', signal })
+  if (!response.ok) throw new Error('팀원 API 요청에 실패했습니다.')
+
+  const body = await response.json() as MembersApiResponse
+  if (!body.ok || !Array.isArray(body.members)) {
+    throw new Error('팀원 API 응답 형식이 올바르지 않습니다.')
+  }
+
+  return parseMembers(body.members)
+}
+
+/** Apps Script에서 현재 주 범위와 활성 팀원을 함께 읽는다. */
+export async function fetchCurrentSchedule(
+  endpoint: string,
+  signal?: AbortSignal,
+): Promise<CurrentSchedule> {
+  const url = new URL(endpoint)
+  url.searchParams.set('action', 'schedule')
+
+  const response = await fetch(url, { method: 'GET', signal })
+  if (!response.ok) throw new Error('일정 API 요청에 실패했습니다.')
+
+  const body = await response.json() as MembersApiResponse & {
+    weekStart?: unknown
+    weekEnd?: unknown
+    availability?: unknown
+  }
+  if (!body.ok
+    || typeof body.weekStart !== 'string'
+    || typeof body.weekEnd !== 'string'
+    || !Array.isArray(body.members)
+    || !Array.isArray(body.availability)) {
+    throw new Error('일정 API 응답 형식이 올바르지 않습니다.')
+  }
+
+  return {
+    weekStart: body.weekStart,
+    weekEnd: body.weekEnd,
+    members: parseMembers(body.members),
+    availability: parseAvailability(body.availability),
+  }
+}
+
+/** 선택한 팀원의 현재 주 일정을 Apps Script에 저장한다. */
+export async function saveMemberSchedule(
+  endpoint: string,
+  memberId: string,
+  weekStart: string,
+  slots: ScheduleSlot[],
+): Promise<void> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    // Apps Script는 OPTIONS를 처리하지 않으므로 CORS preflight가 없는 단순 요청으로 전송한다.
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'saveSchedule', memberId, weekStart, slots }),
+  })
+  if (!response.ok) throw new Error('일정 저장 API 요청에 실패했습니다.')
+
+  const body = await response.json() as { ok?: unknown }
+  if (body.ok !== true) throw new Error('일정을 저장하지 못했습니다.')
+}
+
+function parseMembers(values: unknown[]): Member[] {
+  return values.map((value) => {
+    if (!isMemberRecord(value)) {
+      throw new Error('팀원 데이터 형식이 올바르지 않습니다.')
+    }
+
+    return {
+      id: value.id,
+      name: value.name,
+      status: value.status || '미입력',
+      updated: value.updatedAt || '-',
+      sortOrder: value.sortOrder,
+    }
+  }).sort((left, right) => left.sortOrder - right.sortOrder)
+}
+
+function parseAvailability(values: unknown[]): AvailabilityEntry[] {
+  return values.map((value) => {
+    if (!value || typeof value !== 'object') {
+      throw new Error('일정 데이터 형식이 올바르지 않습니다.')
+    }
+    const entry = value as Record<string, unknown>
+    if (typeof entry.memberId !== 'string'
+      || typeof entry.date !== 'string'
+      || !Array.isArray(entry.slots)
+      || !entry.slots.every((slot) => typeof slot === 'string')
+      || typeof entry.updatedAt !== 'string'
+      || typeof entry.revision !== 'number') {
+      throw new Error('일정 데이터 형식이 올바르지 않습니다.')
+    }
+    return {
+      memberId: entry.memberId,
+      date: entry.date,
+      slots: entry.slots,
+      updatedAt: entry.updatedAt,
+      revision: entry.revision,
+    }
+  })
+}
+
+function isMemberRecord(value: unknown): value is {
+  id: string
+  name: string
+  status: string
+  updatedAt: string
+  sortOrder: number
+} {
+  if (!value || typeof value !== 'object') return false
+  const member = value as Record<string, unknown>
+  return typeof member.id === 'string'
+    && typeof member.name === 'string'
+    && typeof member.status === 'string'
+    && typeof member.updatedAt === 'string'
+    && typeof member.sortOrder === 'number'
+}
