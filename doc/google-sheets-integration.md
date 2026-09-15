@@ -36,8 +36,9 @@ Google Spreadsheet
 | --- | --- | --- |
 | `member_id` | 예 | 이름 변경과 무관한 팀원 식별자 |
 | `display_name` | 예 | 화면에 표시할 이름 |
+| `server` | 예 | 이름 뒤에 `@`와 함께 표시할 서버명 |
+| `position` | 예 | `MT`, `ST`, `MH`, `SH`, `D1`, `D2`, `D3`, `D4` 중 하나. 이 순서로 화면에 표시 |
 | `active` | 예 | 현재 목록 포함 여부 |
-| `sort_order` | 예 | 화면 표시 순서 |
 | `status` | 아니요 | 일정 입력 상태. 1단계에서는 기존 값 또는 `미입력` 사용 |
 | `updated_at` | 아니요 | 최근 일정 수정 시각 |
 
@@ -49,6 +50,8 @@ Apps Script 응답 형식은 다음과 같이 고정한다.
     {
       "id": "member-001",
       "name": "김철수",
+      "server": "루페온",
+      "position": "MT",
       "status": "입력 완료",
       "updatedAt": "2026-09-15T10:24:00+09:00"
     }

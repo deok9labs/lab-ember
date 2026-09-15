@@ -1,6 +1,7 @@
 const MEMBERS_SHEET_NAME = 'members';
 const AVAILABILITY_SHEET_NAME = 'availability';
 const TIME_ZONE = 'Asia/Seoul';
+const MEMBER_POSITION_ORDER = ['MT', 'ST', 'MH', 'SH', 'D1', 'D2', 'D3', 'D4'];
 
 /** 활성 팀원의 공개 가능한 정보만 반환한다. */
 function doGet(event) {
@@ -67,7 +68,7 @@ function getActiveMembers() {
   if (values.length === 0) return [];
 
   const headers = values[0].map((value) => value.trim());
-  const requiredHeaders = ['member_id', 'display_name', 'active', 'sort_order'];
+  const requiredHeaders = ['member_id', 'display_name', 'server', 'position', 'active'];
   requiredHeaders.forEach((header) => {
     if (!headers.includes(header)) throw new Error(`필수 열이 없습니다: ${header}`);
   });
@@ -85,16 +86,26 @@ function getActiveMembers() {
     .map((row) => ({
       id: String(row[column.member_id]).trim(),
       name: String(row[column.display_name]).trim(),
+      server: String(row[column.server]).trim(),
+      position: String(row[column.position]).trim().toUpperCase(),
       status: column.status === undefined
         ? '미입력'
         : String(row[column.status]).trim() || '미입력',
       updatedAt: column.updated_at === undefined
         ? ''
         : String(row[column.updated_at]).trim(),
-      sortOrder: Number(row[column.sort_order]) || 0,
     }))
-    .filter((member) => member.id && member.name)
-    .sort((left, right) => left.sortOrder - right.sortOrder);
+    .filter((member) => member.id && member.name && member.server)
+    .map((member) => {
+      if (!MEMBER_POSITION_ORDER.includes(member.position)) {
+        throw new Error(`지원하지 않는 팀원 포지션입니다: ${member.position}`);
+      }
+      return member;
+    })
+    .sort((left, right) => (
+      MEMBER_POSITION_ORDER.indexOf(left.position)
+      - MEMBER_POSITION_ORDER.indexOf(right.position)
+    ));
 }
 
 /** availability 시트에서 현재 주에 해당하는 행을 읽는다. */
