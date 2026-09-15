@@ -19,7 +19,7 @@ describe('App', () => {
     await user.click(screen.getAllByRole('button', { name: '수정하기' })[0])
 
     expect(
-      screen.getByRole('dialog', { name: '김철수님의 가능한 시간' }),
+      screen.getByRole('dialog', { name: '김철수@루페온님의 가능한 시간' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '선택한 일정 저장' })).toBeInTheDocument()
   })
@@ -45,7 +45,7 @@ describe('App', () => {
     render(
       <App
         suppliedMembers={[
-          { id: 'one', name: '연동 팀원', status: '미입력', updated: '-', sortOrder: 1 },
+          { id: 'one', name: '연동 팀원', server: '테스트', position: 'MT', status: '미입력', updated: '-' },
         ]}
         suppliedAvailability={[
           {
@@ -62,6 +62,7 @@ describe('App', () => {
     )
 
     expect(screen.getByText('입력 완료')).toBeInTheDocument()
+    expect(screen.getByText('2026.09.14 10:00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '수정하기' }))
     expect(screen.getByRole('button', { name: '9/14 (월) 09:00' }))
       .toHaveAttribute('aria-pressed', 'true')

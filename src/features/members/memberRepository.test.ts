@@ -14,15 +14,15 @@ describe('fetchMembers', () => {
       json: async () => ({
         ok: true,
         members: [
-          { id: 'two', name: '두 번째', status: '', updatedAt: '', sortOrder: 2 },
-          { id: 'one', name: '첫 번째', status: '입력 완료', updatedAt: '방금 전', sortOrder: 1 },
+          { id: 'two', name: '두 번째', server: '서버B', position: 'D1', status: '', updatedAt: '' },
+          { id: 'one', name: '첫 번째', server: '서버A', position: 'MT', status: '입력 완료', updatedAt: '방금 전' },
         ],
       }),
     }))
 
     await expect(fetchMembers('https://example.com/exec')).resolves.toEqual([
-      { id: 'one', name: '첫 번째', status: '입력 완료', updated: '방금 전', sortOrder: 1 },
-      { id: 'two', name: '두 번째', status: '미입력', updated: '-', sortOrder: 2 },
+      { id: 'one', name: '첫 번째', server: '서버A', position: 'MT', status: '입력 완료', updated: '방금 전' },
+      { id: 'two', name: '두 번째', server: '서버B', position: 'D1', status: '미입력', updated: '-' },
     ])
   })
 
@@ -45,7 +45,7 @@ describe('fetchMembers', () => {
         weekStart: '2026-09-14',
         weekEnd: '2026-09-20',
         members: [
-          { id: 'one', name: '첫 번째', status: '미입력', updatedAt: '', sortOrder: 1 },
+          { id: 'one', name: '첫 번째', server: '서버A', position: 'MT', status: '미입력', updatedAt: '' },
         ],
         availability: [{
           memberId: 'one',
@@ -61,7 +61,7 @@ describe('fetchMembers', () => {
       weekStart: '2026-09-14',
       weekEnd: '2026-09-20',
       members: [
-        { id: 'one', name: '첫 번째', status: '미입력', updated: '-', sortOrder: 1 },
+        { id: 'one', name: '첫 번째', server: '서버A', position: 'MT', status: '미입력', updated: '-' },
       ],
       availability: [{
         memberId: 'one',

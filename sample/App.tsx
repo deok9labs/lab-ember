@@ -7,14 +7,14 @@ import type {
 import { createRecommendations } from '../src/features/schedule/recommendations'
 
 const initialMembers: Member[] = [
-  { id: 'sample-1', name: '김철수', status: '입력 완료', updated: '9.15 10:24', sortOrder: 1 },
-  { id: 'sample-2', name: '이영희', status: '입력 완료', updated: '9.15 09:18', sortOrder: 2 },
-  { id: 'sample-3', name: '박민수', status: '입력 완료', updated: '9.14 22:11', sortOrder: 3 },
-  { id: 'sample-4', name: '최지은', status: '미입력', updated: '-', sortOrder: 4 },
-  { id: 'sample-5', name: '정현우', status: '입력 완료', updated: '9.15 08:36', sortOrder: 5 },
-  { id: 'sample-6', name: '한소희', status: '입력 완료', updated: '9.14 23:02', sortOrder: 6 },
-  { id: 'sample-7', name: '오민준', status: '입력 완료', updated: '9.15 07:51', sortOrder: 7 },
-  { id: 'sample-8', name: '이수빈', status: '미입력', updated: '-', sortOrder: 8 },
+  { id: 'sample-1', name: '김철수', server: '루페온', position: 'MT', status: '입력 완료', updated: '9.15 10:24' },
+  { id: 'sample-2', name: '이영희', server: '카제로스', position: 'ST', status: '입력 완료', updated: '9.15 09:18' },
+  { id: 'sample-3', name: '박민수', server: '아만', position: 'MH', status: '입력 완료', updated: '9.14 22:11' },
+  { id: 'sample-4', name: '최지은', server: '실리안', position: 'SH', status: '미입력', updated: '-' },
+  { id: 'sample-5', name: '정현우', server: '카단', position: 'D1', status: '입력 완료', updated: '9.15 08:36' },
+  { id: 'sample-6', name: '한소희', server: '아브렐슈드', position: 'D2', status: '입력 완료', updated: '9.14 23:02' },
+  { id: 'sample-7', name: '오민준', server: '니나브', position: 'D3', status: '입력 완료', updated: '9.15 07:51' },
+  { id: 'sample-8', name: '이수빈', server: '루페온', position: 'D4', status: '미입력', updated: '-' },
 ]
 const sampleDays = ['9/15 (월)', '9/16 (화)', '9/17 (수)', '9/18 (목)', '9/19 (금)', '9/20 (토)', '9/21 (일)']
 const times = Array.from({ length: 48 }, (_, index) => {
@@ -247,17 +247,17 @@ export default function App({
               {memberLoadState === 'ready' && members.length === 0 && (
                 <li className="member-message">표시할 팀원이 없습니다.</li>
               )}
-              {memberLoadState === 'ready' && members.map(({ id, name, status, updated, sortOrder }, index) => (
+              {memberLoadState === 'ready' && members.map(({ id, name, server, position, status, updated }) => (
                 <li key={id}>
-                  <span className="member-number">{index + 1}</span>
-                  <strong>{name}</strong>
+                  <span className={`member-position position-${position.toLowerCase()}`}>{position}</span>
+                  <strong>{name}@{server}</strong>
                   <div className="member-actions">
                     <span
                       className={`status ${status === '미입력' ? 'pending' : ''}`}
                     >
                       {status}
                     </span>
-                    <button type="button" onClick={() => openEditor({ id, name, status, updated, sortOrder })}>
+                    <button type="button" onClick={() => openEditor({ id, name, server, position, status, updated })}>
                       수정하기
                     </button>
                   </div>
@@ -339,11 +339,6 @@ export default function App({
               </ul>
             ) : <p className="empty-recommendation">2명 이상 겹치는 시간이 없습니다.</p>}
           </section>
-          <div className="notice">
-            <strong>● 안내사항</strong>
-            <p>각자 본인의 이름과 비밀번호로 접속하여 일정을 입력해 주세요.</p>
-            <p>입력된 일정은 모든 팀원이 실시간으로 확인할 수 있습니다.</p>
-          </div>
         </aside>
       </section>
 
@@ -358,7 +353,7 @@ export default function App({
             <header className="editor-header">
               <div>
                 <span className="editor-eyebrow">주간 일정 수정</span>
-                <h2 id="editor-title">{editingMember.name}님의 가능한 시간</h2>
+                <h2 id="editor-title">{editingMember.name}@{editingMember.server}님의 가능한 시간</h2>
                 <p>클릭하거나 드래그해 가능한 시간을 선택하세요. 선택된 칸에서 드래그하면 해제됩니다.</p>
               </div>
               <button
@@ -486,14 +481,17 @@ function formatUpdatedAt(value: string) {
   if (!value) return '-'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('ko-KR', {
+  const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Seoul',
+    year: 'numeric',
     month: 'numeric',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
-  }).format(date)
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}.${values.month.padStart(2, '0')}.${values.day.padStart(2, '0')} ${values.hour}:${values.minute}`
 }
 
 function getDayName(dayLabel: string) {

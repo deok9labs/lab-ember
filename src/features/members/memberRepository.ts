@@ -1,10 +1,16 @@
+const MEMBER_POSITIONS = ['MT', 'ST', 'MH', 'SH', 'D1', 'D2', 'D3', 'D4'] as const
+
+/** members 시트에서 사용하는 팀 포지션과 고정 표시 순서다. */
+export type MemberPosition = typeof MEMBER_POSITIONS[number]
+
 /** 화면에 공개할 수 있는 팀원 정보다. */
 export type Member = {
   id: string
   name: string
+  server: string
+  position: MemberPosition
   status: string
   updated: string
-  sortOrder: number
 }
 
 type MembersApiResponse = {
@@ -114,11 +120,14 @@ function parseMembers(values: unknown[]): Member[] {
     return {
       id: value.id,
       name: value.name,
+      server: value.server,
+      position: value.position,
       status: value.status || '미입력',
       updated: value.updatedAt || '-',
-      sortOrder: value.sortOrder,
     }
-  }).sort((left, right) => left.sortOrder - right.sortOrder)
+  }).sort((left, right) => (
+    MEMBER_POSITIONS.indexOf(left.position) - MEMBER_POSITIONS.indexOf(right.position)
+  ))
 }
 
 function parseAvailability(values: unknown[]): AvailabilityEntry[] {
@@ -148,15 +157,19 @@ function parseAvailability(values: unknown[]): AvailabilityEntry[] {
 function isMemberRecord(value: unknown): value is {
   id: string
   name: string
+  server: string
+  position: MemberPosition
   status: string
   updatedAt: string
-  sortOrder: number
 } {
   if (!value || typeof value !== 'object') return false
   const member = value as Record<string, unknown>
   return typeof member.id === 'string'
     && typeof member.name === 'string'
+    && typeof member.server === 'string'
+    && member.server.trim().length > 0
+    && typeof member.position === 'string'
+    && MEMBER_POSITIONS.includes(member.position as MemberPosition)
     && typeof member.status === 'string'
     && typeof member.updatedAt === 'string'
-    && typeof member.sortOrder === 'number'
 }
