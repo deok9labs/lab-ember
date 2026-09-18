@@ -13,9 +13,12 @@ export type Member = {
   updated: string
 }
 
-type MembersApiResponse = {
+type ScheduleApiResponse = {
   ok: boolean
   members?: unknown
+  weekStart?: unknown
+  weekEnd?: unknown
+  availability?: unknown
 }
 
 /** 현재 주 범위와 그 주에 표시할 팀원 목록이다. */
@@ -42,25 +45,9 @@ export type AvailabilityEntry = {
 }
 
 /**
- * Apps Script가 반환한 값을 화면 계약에 맞게 검증하고 변환한다.
+ * Apps Script에서 현재 주 범위와 활성 팀원 일정을 읽고 화면 계약에 맞게 검증한다.
  * 스프레드시트의 예기치 않은 값이 렌더링 계층까지 전파되지 않도록 필수 필드를 확인한다.
  */
-export async function fetchMembers(endpoint: string, signal?: AbortSignal): Promise<Member[]> {
-  const url = new URL(endpoint)
-  url.searchParams.set('action', 'members')
-
-  const response = await fetch(url, { method: 'GET', signal })
-  if (!response.ok) throw new Error('팀원 API 요청에 실패했습니다.')
-
-  const body = await response.json() as MembersApiResponse
-  if (!body.ok || !Array.isArray(body.members)) {
-    throw new Error('팀원 API 응답 형식이 올바르지 않습니다.')
-  }
-
-  return parseMembers(body.members)
-}
-
-/** Apps Script에서 현재 주 범위와 활성 팀원을 함께 읽는다. */
 export async function fetchCurrentSchedule(
   endpoint: string,
   signal?: AbortSignal,
@@ -71,11 +58,7 @@ export async function fetchCurrentSchedule(
   const response = await fetch(url, { method: 'GET', signal })
   if (!response.ok) throw new Error('일정 API 요청에 실패했습니다.')
 
-  const body = await response.json() as MembersApiResponse & {
-    weekStart?: unknown
-    weekEnd?: unknown
-    availability?: unknown
-  }
+  const body = await response.json() as ScheduleApiResponse
   if (!body.ok
     || typeof body.weekStart !== 'string'
     || typeof body.weekEnd !== 'string'

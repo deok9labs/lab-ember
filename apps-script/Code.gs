@@ -5,12 +5,9 @@ const MEMBER_POSITION_ORDER = ['MT', 'ST', 'MH', 'SH', 'D1', 'D2', 'D3', 'D4'];
 
 /** 활성 팀원의 공개 가능한 정보만 반환한다. */
 function doGet(event) {
-  const action = event && event.parameter ? event.parameter.action : 'members';
+  const action = event && event.parameter ? event.parameter.action : 'schedule';
 
   try {
-    if (action === 'members') {
-      return createJsonResponse({ ok: true, members: getActiveMembers() });
-    }
     if (action === 'schedule') {
       return createJsonResponse({ ok: true, ...getCurrentSchedule() });
     }

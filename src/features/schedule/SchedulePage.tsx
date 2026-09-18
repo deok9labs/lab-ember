@@ -3,33 +3,12 @@ import type {
   AvailabilityEntry,
   Member,
   ScheduleSlot,
-} from '../src/features/members/memberRepository'
-import { createRecommendations } from '../src/features/schedule/recommendations'
+} from './scheduleRepository'
+import { createRecommendations } from './recommendations'
 
-const initialMembers: Member[] = [
-  { id: 'sample-1', name: '김철수', server: '루페온', position: 'MT', status: '입력 완료', updated: '9.15 10:24' },
-  { id: 'sample-2', name: '이영희', server: '카제로스', position: 'ST', status: '입력 완료', updated: '9.15 09:18' },
-  { id: 'sample-3', name: '박민수', server: '아만', position: 'MH', status: '입력 완료', updated: '9.14 22:11' },
-  { id: 'sample-4', name: '최지은', server: '실리안', position: 'SH', status: '미입력', updated: '-' },
-  { id: 'sample-5', name: '정현우', server: '카단', position: 'D1', status: '입력 완료', updated: '9.15 08:36' },
-  { id: 'sample-6', name: '한소희', server: '아브렐슈드', position: 'D2', status: '입력 완료', updated: '9.14 23:02' },
-  { id: 'sample-7', name: '오민준', server: '니나브', position: 'D3', status: '입력 완료', updated: '9.15 07:51' },
-  { id: 'sample-8', name: '이수빈', server: '루페온', position: 'D4', status: '미입력', updated: '-' },
-]
-const sampleDays = ['9/15 (월)', '9/16 (화)', '9/17 (수)', '9/18 (목)', '9/19 (금)', '9/20 (토)', '9/21 (일)']
 const times = Array.from({ length: 48 }, (_, index) => {
   const hour = Math.floor(index / 2).toString().padStart(2, '0')
   return `${hour}:${index % 2 === 0 ? '00' : '30'}`
-})
-
-// 화면 시안용 값으로, 하루 전체에서도 업무 시간대가 상대적으로 높게 보이도록 구성한다.
-const sampleAvailability = times.map((_, row) => {
-  const hour = Math.floor(row / 2)
-  const timeWeight = hour >= 9 && hour < 18 ? 3 : hour >= 7 && hour < 22 ? 1 : -1
-
-  return sampleDays.map((__, column) =>
-    Math.max(0, Math.min(8, 4 + timeWeight + ((row + column * 2) % 3) - (column > 4 ? 1 : 0))),
-  )
 })
 
 type GridPosition = { row: number; column: number }
@@ -49,9 +28,9 @@ type SchedulePageProps = {
   onSaveSchedule?: (memberId: string, slots: ScheduleSlot[]) => Promise<void>
 }
 
-/** 시안 기반의 정적 주간 공용 스케줄 화면을 제공한다. */
-export default function App({
-  suppliedMembers,
+/** 현재 주의 팀원별 가능 시간과 추천 구간을 표시하고 편집한다. */
+export default function SchedulePage({
+  suppliedMembers = [],
   memberLoadState = 'ready',
   onRetryMembers,
   weekStart,
@@ -82,12 +61,14 @@ export default function App({
     }
   }, [])
 
-  const days = weekStart ? createWeekDayLabels(weekStart) : sampleDays
+  const displayedWeekStart = weekStart ?? getCurrentWeekStart()
+  const displayedWeekEnd = weekEnd ?? addDays(displayedWeekStart, 6)
+  const days = createWeekDayLabels(displayedWeekStart)
   const dayDates = Array.from(
     { length: 7 },
-    (_, index) => weekStart ? addDays(weekStart, index) : `sample-${index}`,
+    (_, index) => addDays(displayedWeekStart, index),
   )
-  const members = (suppliedMembers ?? initialMembers).map((member) => {
+  const members = suppliedMembers.map((member) => {
     const savedEntries = suppliedAvailability?.filter((entry) => entry.memberId === member.id) ?? []
     const latestUpdate = savedEntries
       .map((entry) => entry.updatedAt)
@@ -103,7 +84,7 @@ export default function App({
     }
   })
   const availability = suppliedAvailability === undefined
-    ? sampleAvailability
+    ? times.map(() => days.map(() => 0))
     : times.map((time) => dayDates.map((date) => (
       new Set(
         suppliedAvailability
@@ -112,10 +93,8 @@ export default function App({
       ).size
     )))
   const recommendations = createRecommendations(availability, members.length)
-  const weekTitle = weekStart && weekEnd
-    ? `${formatKoreanDate(weekStart)} ~ ${formatKoreanDate(weekEnd)}`
-    : '2026년 9월 15일 (월) ~ 9월 21일 (일)'
-  const remainingDays = weekEnd ? getRemainingDays(weekEnd) : 6
+  const weekTitle = `${formatKoreanDate(displayedWeekStart)} ~ ${formatKoreanDate(displayedWeekEnd)}`
+  const remainingDays = getRemainingDays(displayedWeekEnd)
 
   const openEditor = (member: Member) => {
     setEditingMember(member)
@@ -464,7 +443,14 @@ function createWeekDayLabels(weekStart: string) {
   })
 }
 
-function getRemainingDays(weekEnd: string) {
+function getCurrentWeekStart() {
+  const today = getTodayInKorea()
+  const day = parseDate(today).getUTCDay()
+  const daysSinceMonday = (day + 6) % 7
+  return addDays(today, -daysSinceMonday)
+}
+
+function getTodayInKorea() {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
@@ -472,8 +458,11 @@ function getRemainingDays(weekEnd: string) {
     day: '2-digit',
   }).formatToParts(new Date())
   const value = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-  const today = `${value.year}-${value.month}-${value.day}`
-  const difference = parseDate(weekEnd).getTime() - parseDate(today).getTime()
+  return `${value.year}-${value.month}-${value.day}`
+}
+
+function getRemainingDays(weekEnd: string) {
+  const difference = parseDate(weekEnd).getTime() - parseDate(getTodayInKorea()).getTime()
   return Math.max(0, Math.ceil(difference / 86_400_000))
 }
 
