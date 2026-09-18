@@ -42,6 +42,7 @@ function collectRanges(
     let startRow: number | null = null
     let rangeCount = 0
 
+    // 마지막 가상 행까지 순회해 자정까지 이어지는 열린 구간도 동일한 로직으로 닫는다.
     for (let row = 0; row <= counts.length; row += 1) {
       const count = counts[row]?.[dayIndex] ?? 0
       const continuesRange = startRow !== null && include(count) && count === rangeCount
