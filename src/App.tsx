@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
-import SampleSchedulePage from '../sample/App'
+import SchedulePage from './features/schedule/SchedulePage'
 import {
   fetchCurrentSchedule,
   saveMemberSchedule,
   type CurrentSchedule,
   type ScheduleSlot,
-} from './features/members/memberRepository'
+} from './features/schedule/scheduleRepository'
 
 type MemberLoadState = 'loading' | 'ready' | 'error'
 
-/** Google Sheets API의 팀원 정보를 기준 시안의 좌측 목록에 연결한다. */
+/** Google Sheets API와 주간 일정 화면의 조회·저장 상태를 연결한다. */
 export default function App() {
   const [schedule, setSchedule] = useState<CurrentSchedule | null>(null)
   const [memberLoadState, setMemberLoadState] = useState<MemberLoadState>('loading')
@@ -47,7 +47,7 @@ export default function App() {
   }
 
   return (
-    <SampleSchedulePage
+    <SchedulePage
       suppliedMembers={schedule?.members ?? []}
       weekStart={schedule?.weekStart}
       weekEnd={schedule?.weekEnd}
