@@ -25,7 +25,7 @@ type SchedulePageProps = {
   weekStart?: string
   weekEnd?: string
   suppliedAvailability?: AvailabilityEntry[]
-  onSaveSchedule?: (memberId: string, slots: ScheduleSlot[]) => Promise<void>
+  onSaveSchedule?: (memberId: number, slots: ScheduleSlot[]) => Promise<void>
 }
 
 /** 현재 주의 팀원별 가능 시간과 추천 구간을 표시하고 편집한다. */
@@ -38,7 +38,7 @@ export default function SchedulePage({
   suppliedAvailability,
   onSaveSchedule,
 }: SchedulePageProps = {}) {
-  const [memberUpdates, setMemberUpdates] = useState<Record<string, Partial<Member>>>({})
+  const [memberUpdates, setMemberUpdates] = useState<Record<number, Partial<Member>>>({})
   const [editingMember, setEditingMember] = useState<Member | null>(null)
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set())
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'error'>('idle')
@@ -68,21 +68,11 @@ export default function SchedulePage({
     { length: 7 },
     (_, index) => addDays(displayedWeekStart, index),
   )
-  const members = suppliedMembers.map((member) => {
-    const savedEntries = suppliedAvailability?.filter((entry) => entry.memberId === member.id) ?? []
-    const latestUpdate = savedEntries
-      .map((entry) => entry.updatedAt)
-      .filter(Boolean)
-      .sort()
-      .at(-1)
-    return {
-      ...member,
-      ...(savedEntries.length > 0
-        ? { status: '입력 완료', updated: formatUpdatedAt(latestUpdate ?? '') }
-        : {}),
-      ...memberUpdates[member.id],
-    }
-  })
+  const members = suppliedMembers.map((member) => ({
+    ...member,
+    updated: formatUpdatedAt(member.updated),
+    ...memberUpdates[member.id],
+  }))
   const availability = suppliedAvailability === undefined
     ? times.map(() => days.map(() => 0))
     : times.map((time) => dayDates.map((date) => (
