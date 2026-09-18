@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  base: '/lab-ember/',
+  base: '/',
   plugins: [react()],
   server: {
     // 운영과 동일한 /api 경로를 사용하면서 로컬에서는 Aster 개발 서버로 전달한다.

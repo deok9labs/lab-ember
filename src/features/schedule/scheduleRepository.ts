@@ -9,8 +9,8 @@ export type Member = {
   name: string
   server: string
   position: MemberPosition
-  status: string
-  updated: string
+  submitted: boolean
+  updatedAt: string | null
 }
 
 type ScheduleApiResponse = {
@@ -50,6 +50,7 @@ export async function fetchCurrentSchedule(
   if (!response.ok) throw new Error('일정 API 요청에 실패했습니다.')
 
   const body = await response.json() as ScheduleApiResponse
+  // TypeScript type은 network 응답을 보장하지 않으므로 UI 경계에 진입하기 전에 필수 구조를 검증한다.
   if (typeof body.weekStart !== 'string'
     || typeof body.weekEnd !== 'string'
     || !Array.isArray(body.members)
@@ -81,6 +82,7 @@ export async function saveMemberSchedule(
 }
 
 function scheduleUrl(apiBaseUrl: string) {
+  // 환경 변수의 trailing slash 유무가 endpoint를 바꾸지 않도록 경계에서 한 번 정규화한다.
   return `${apiBaseUrl.replace(/\/$/, '')}/v1/schedules/current`
 }
 
@@ -93,9 +95,10 @@ function parseMembers(values: unknown[]): Member[] {
       name: value.name,
       server: value.server,
       position: value.position,
-      status: value.submitted ? '입력 완료' : '미입력',
-      updated: value.updatedAt ?? '-',
+      submitted: value.submitted,
+      updatedAt: value.updatedAt,
     }
+  // API 반환 순서와 관계없이 업무상 고정된 파티 구성 순서로 화면을 유지한다.
   }).sort((left, right) => (
     MEMBER_POSITIONS.indexOf(left.position) - MEMBER_POSITIONS.indexOf(right.position)
   ))

@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
+import ScheduleEditor, { type GridPosition } from './ScheduleEditor'
 import type {
   AvailabilityEntry,
   Member,
   ScheduleSlot,
 } from './scheduleRepository'
 import { createRecommendations } from './recommendations'
-
-const times = Array.from({ length: 48 }, (_, index) => {
-  const hour = Math.floor(index / 2).toString().padStart(2, '0')
-  return `${hour}:${index % 2 === 0 ? '00' : '30'}`
-})
-
-type GridPosition = { row: number; column: number }
+import {
+  addDays,
+  createWeekDayLabels,
+  formatKoreanDate,
+  formatUpdatedAt,
+  getCurrentWeekStart,
+  getDayName,
+  getRemainingDays,
+} from './scheduleDate'
+import {
+  createAvailabilityCounts,
+  createMemberSlotSelection,
+  TEAM_SIZE,
+  TIME_SLOTS,
+} from './scheduleModel'
 type DragSelection = {
   start: GridPosition
   shouldSelect: boolean
@@ -70,30 +79,19 @@ export default function SchedulePage({
   )
   const members = suppliedMembers.map((member) => ({
     ...member,
-    updated: formatUpdatedAt(member.updated),
     ...memberUpdates[member.id],
   }))
-  const availability = suppliedAvailability === undefined
-    ? times.map(() => days.map(() => 0))
-    : times.map((time) => dayDates.map((date) => (
-      new Set(
-        suppliedAvailability
-          .filter((entry) => entry.date === date && entry.slots.includes(time))
-          .map((entry) => entry.memberId),
-      ).size
-    )))
-  const recommendations = createRecommendations(availability, members.length)
+  const availability = createAvailabilityCounts(suppliedAvailability, dayDates)
+  const recommendations = createRecommendations(availability, TEAM_SIZE)
+  const teamSizeMismatch = memberLoadState === 'ready'
+    && members.length > 0
+    && members.length !== TEAM_SIZE
   const weekTitle = `${formatKoreanDate(displayedWeekStart)} ~ ${formatKoreanDate(displayedWeekEnd)}`
   const remainingDays = getRemainingDays(displayedWeekEnd)
 
   const openEditor = (member: Member) => {
     setEditingMember(member)
-    setSelectedSlots(new Set(
-      suppliedAvailability
-        ?.filter((entry) => entry.memberId === member.id)
-        .flatMap((entry) => entry.slots.map((time) => `${entry.date}|${time}`))
-        ?? [],
-    ))
+    setSelectedSlots(createMemberSlotSelection(suppliedAvailability, member.id))
     setSaveState('idle')
   }
 
@@ -115,7 +113,7 @@ export default function SchedulePage({
 
     for (let row = firstRow; row <= lastRow; row += 1) {
       for (let column = firstColumn; column <= lastColumn; column += 1) {
-        const slot = `${dayDates[column]}|${times[row]}`
+        const slot = `${dayDates[column]}|${TIME_SLOTS[row]}`
         if (drag.shouldSelect) next.add(slot)
         else next.delete(slot)
       }
@@ -124,10 +122,11 @@ export default function SchedulePage({
   }
 
   const startSlotDrag = (position: GridPosition) => {
-    const slot = `${dayDates[position.column]}|${times[position.row]}`
+    const slot = `${dayDates[position.column]}|${TIME_SLOTS[position.row]}`
     const drag = {
       start: position,
       shouldSelect: !selectedSlots.has(slot),
+      // 드래그 중 매 이동마다 같은 최초 상태를 기준으로 계산해야 되돌아갈 때 선택이 흔들리지 않는다.
       baseSelection: new Set(selectedSlots),
     }
     dragSelection.current = drag
@@ -164,7 +163,7 @@ export default function SchedulePage({
       }
       setMemberUpdates((current) => ({
         ...current,
-        [editingMember.id]: { status: '입력 완료', updated: '방금 전' },
+        [editingMember.id]: { submitted: true, updatedAt: new Date().toISOString() },
       }))
       setEditingMember(null)
       setSaveState('idle')
@@ -216,21 +215,24 @@ export default function SchedulePage({
               {memberLoadState === 'ready' && members.length === 0 && (
                 <li className="member-message">표시할 팀원이 없습니다.</li>
               )}
-              {memberLoadState === 'ready' && members.map(({ id, name, server, position, status, updated }) => (
-                <li key={id}>
-                  <span className={`member-position position-${position.toLowerCase()}`}>{position}</span>
-                  <strong>{name}@{server}</strong>
+              {teamSizeMismatch && (
+                <li className="member-message member-error">팀원 데이터는 {TEAM_SIZE}명이어야 합니다.</li>
+              )}
+              {memberLoadState === 'ready' && members.map((member) => (
+                <li key={member.id}>
+                  <span className={`member-position position-${member.position.toLowerCase()}`}>{member.position}</span>
+                  <strong>{member.name}@{member.server}</strong>
                   <div className="member-actions">
                     <span
-                      className={`status ${status === '미입력' ? 'pending' : ''}`}
+                      className={`status ${member.submitted ? '' : 'pending'}`}
                     >
-                      {status}
+                      {member.submitted ? '입력 완료' : '미입력'}
                     </span>
-                    <button type="button" onClick={() => openEditor({ id, name, server, position, status, updated })}>
+                    <button type="button" onClick={() => openEditor(member)}>
                       수정하기
                     </button>
                   </div>
-                  <time>{updated}</time>
+                  <time>{formatUpdatedAt(member.updatedAt)}</time>
                 </li>
               ))}
             </ol>
@@ -249,7 +251,7 @@ export default function SchedulePage({
                 </tr>
               </thead>
               <tbody>
-                {times.map((time, row) => (
+                {TIME_SLOTS.map((time, row) => (
                   <tr key={time}>
                     <th>{time}</th>
                     {availability[row].map((count, column) => (
@@ -283,7 +285,7 @@ export default function SchedulePage({
             전원이 가능한 시간과 두 명 이상이 겹치는 시간을 보여줍니다.
           </p>
           <section className="recommend-box all">
-            <h3>{members.length}명 모두 가능</h3>
+            <h3>{TEAM_SIZE}명 모두 가능</h3>
             {recommendations.allMembers.length > 0 ? (
               <ul>
                 {recommendations.allMembers.map((recommendation) => (
@@ -296,7 +298,7 @@ export default function SchedulePage({
             ) : <p className="empty-recommendation">해당하는 시간이 없습니다.</p>}
           </section>
           <section className="recommend-box seven">
-            <h3>{members.length}명 미만 가능</h3>
+            <h3>{TEAM_SIZE}명 미만 가능</h3>
             {recommendations.partial.length > 0 ? (
               <ul>
                 {recommendations.partial.map((recommendation) => (
@@ -312,169 +314,22 @@ export default function SchedulePage({
       </section>
 
       {editingMember && (
-        <div className="editor-backdrop" role="presentation">
-          <section
-            className="schedule-editor"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="editor-title"
-          >
-            <header className="editor-header">
-              <div>
-                <span className="editor-eyebrow">주간 일정 수정</span>
-                <h2 id="editor-title">{editingMember.name}@{editingMember.server}님의 가능한 시간</h2>
-                <p>클릭하거나 드래그해 가능한 시간을 선택하세요. 선택된 칸에서 드래그하면 해제됩니다.</p>
-              </div>
-              <button
-                className="editor-close"
-                type="button"
-                aria-label="일정 수정 닫기"
-                onClick={() => setEditingMember(null)}
-              >
-                ×
-              </button>
-            </header>
-
-            <div className="editor-summary">
-              <strong>{selectedSlots.size}개 시간 선택</strong>
-              {saveState === 'error' ? (
-                <span className="editor-error" role="alert">
-                  저장하지 못했습니다. 다시 시도해 주세요.
-                </span>
-              ) : (
-                <span>30분 단위 · 이번 주에만 적용</span>
-              )}
-            </div>
-
-            <div className="editor-table-scroll">
-              <table className="editor-table">
-                <thead>
-                  <tr>
-                    <th>시간</th>
-                    {days.map((day) => <th key={day}>{day}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {times.map((time, row) => (
-                    <tr key={time}>
-                      <th>{time}</th>
-                      {days.map((day, column) => {
-                        const slot = `${dayDates[column]}|${time}`
-                        const selected = selectedSlots.has(slot)
-                        return (
-                          <td
-                            key={slot}
-                            className={isInsideDragRectangle(row, column) ? 'drag-preview' : ''}
-                          >
-                            <button
-                              type="button"
-                              className={selected ? 'selected' : ''}
-                              aria-pressed={selected}
-                              aria-label={`${day} ${time}`}
-                              onPointerDown={(event) => {
-                                if (event.button !== 0) return
-                                event.preventDefault()
-                                startSlotDrag({ row, column })
-                              }}
-                              onPointerEnter={() => continueSlotDrag({ row, column })}
-                              onClick={(event) => {
-                                // 키보드로 발생한 click에는 pointer 이벤트가 없으므로 별도로 처리한다.
-                                if (event.detail === 0) toggleSlot(slot)
-                              }}
-                            >
-                              <span aria-hidden="true">✓</span>
-                            </button>
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <footer className="editor-footer">
-              <button className="secondary-button" type="button" disabled={saveState === 'saving'} onClick={() => setEditingMember(null)}>
-                취소
-              </button>
-              <button className="primary-button" type="button" disabled={saveState === 'saving'} onClick={() => void savePreview()}>
-                {saveState === 'saving' ? '저장 중...' : '선택한 일정 저장'}
-              </button>
-            </footer>
-          </section>
-        </div>
+        <ScheduleEditor
+          member={editingMember}
+          days={days}
+          dayDates={dayDates}
+          selectedSlots={selectedSlots}
+          saveState={saveState}
+          isInsideDragRectangle={isInsideDragRectangle}
+          onStartDrag={startSlotDrag}
+          onContinueDrag={continueSlotDrag}
+          onToggleSlot={toggleSlot}
+          onCancel={() => setEditingMember(null)}
+          onSave={() => void savePreview()}
+        />
       )}
     </main>
   )
-}
-
-function parseDate(dateText: string) {
-  const [year, month, day] = dateText.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, day))
-}
-
-function addDays(dateText: string, days: number) {
-  const date = parseDate(dateText)
-  date.setUTCDate(date.getUTCDate() + days)
-  return date.toISOString().slice(0, 10)
-}
-
-function formatKoreanDate(dateText: string) {
-  const date = parseDate(dateText)
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토']
-  return `${date.getUTCFullYear()}년 ${date.getUTCMonth() + 1}월 ${date.getUTCDate()}일 (${weekdays[date.getUTCDay()]})`
-}
-
-function createWeekDayLabels(weekStart: string) {
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = parseDate(addDays(weekStart, index))
-    const weekdays = ['일', '월', '화', '수', '목', '금', '토']
-    return `${date.getUTCMonth() + 1}/${date.getUTCDate()} (${weekdays[date.getUTCDay()]})`
-  })
-}
-
-function getCurrentWeekStart() {
-  const today = getTodayInKorea()
-  const day = parseDate(today).getUTCDay()
-  const daysSinceMonday = (day + 6) % 7
-  return addDays(today, -daysSinceMonday)
-}
-
-function getTodayInKorea() {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date())
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-  return `${value.year}-${value.month}-${value.day}`
-}
-
-function getRemainingDays(weekEnd: string) {
-  const difference = parseDate(weekEnd).getTime() - parseDate(getTodayInKorea()).getTime()
-  return Math.max(0, Math.ceil(difference / 86_400_000))
-}
-
-function formatUpdatedAt(value: string) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date)
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-  return `${values.year}.${values.month.padStart(2, '0')}.${values.day.padStart(2, '0')} ${values.hour}:${values.minute}`
-}
-
-function getDayName(dayLabel: string) {
-  return dayLabel.match(/\(([^)]+)\)/)?.[1] ?? dayLabel
 }
 
 function recommendationKey(recommendation: {

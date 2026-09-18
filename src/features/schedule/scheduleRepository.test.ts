@@ -23,8 +23,8 @@ describe('scheduleRepository', () => {
       weekStart: '2026-09-14',
       weekEnd: '2026-09-20',
       members: [
-        { id: 1, name: '첫 번째', server: '서버A', position: 'MT', status: '미입력', updated: '-' },
-        { id: 2, name: '두 번째', server: '서버B', position: 'D1', status: '입력 완료', updated: '2026-09-14T10:00:00+09:00' },
+        { id: 1, name: '첫 번째', server: '서버A', position: 'MT', submitted: false, updatedAt: null },
+        { id: 2, name: '두 번째', server: '서버B', position: 'D1', submitted: true, updatedAt: '2026-09-14T10:00:00+09:00' },
       ],
       availability: [{ memberId: 1, date: '2026-09-14', slots: ['09:00'] }],
     })

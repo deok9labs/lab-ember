@@ -27,14 +27,13 @@ npm.cmd run lint
 npm.cmd run build
 ```
 
-## GitHub Pages 배포
+## 배포 구조
 
-현재 GitHub Pages 워크플로를 유지하는 동안에는 Actions secret `API_BASE_URL`에 브라우저에서 접근 가능한 Aster의 `/api` 주소를 등록합니다. 이 주소는 빌드 결과에 포함되는 공개 설정이며 인증 비밀값을 넣으면 안 됩니다.
-
-저장소의 `Settings → Pages → Build and deployment → Source`에서 `GitHub Actions`를 선택합니다. 이후 `main` push 또는 수동 실행 시 테스트, lint와 build를 통과한 결과가 Pages에 배포됩니다.
-
-프로젝트 저장소 Pages 주소는 다음 형식을 사용합니다.
+프로덕션 빌드 결과는 `dist/`에 생성됩니다. 운영 환경에서는 Nginx가 이 정적 파일을 `/`에서 제공하고 `/api/` 요청을 Aster로 전달합니다.
 
 ```text
-https://deok9labs.github.io/lab-ember/
+브라우저 ── / ─────→ Nginx ──→ Ember dist/
+         └─ /api/ ─→ Nginx ──→ Aster
 ```
+
+API 주소는 공개 설정이며 인증 비밀값을 포함하면 안 됩니다. 실제 인증 정보와 database 자격 증명은 프론트엔드 빌드에 주입하지 않습니다.
