@@ -2,20 +2,30 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import SchedulePage from './SchedulePage'
+import type { Member } from './scheduleRepository'
 
-const testMember = {
+const testMember: Member = {
   id: 1,
   name: '김철수',
   server: '루페온',
   position: 'MT' as const,
-  status: '미입력',
-  updated: '-',
+  submitted: false,
+  updatedAt: null,
 }
+
+const teamMembers: Member[] = [
+  testMember,
+  ...Array.from({ length: 7 }, (_, index) => ({
+    ...testMember,
+    id: index + 2,
+    name: `팀원 ${index + 2}`,
+  })),
+]
 
 function renderSchedulePage() {
   return render(
     <SchedulePage
-      suppliedMembers={[testMember]}
+      suppliedMembers={teamMembers}
       suppliedAvailability={[]}
       weekStart="2026-09-14"
       weekEnd="2026-09-20"
@@ -65,7 +75,8 @@ describe('SchedulePage', () => {
     render(
       <SchedulePage
         suppliedMembers={[
-          { id: 1, name: '연동 팀원', server: '테스트', position: 'MT', status: '입력 완료', updated: '2026-09-14T10:00:00+09:00' },
+          { ...testMember, name: '연동 팀원', server: '테스트', submitted: true, updatedAt: '2026-09-14T10:00:00+09:00' },
+          ...teamMembers.slice(1),
         ]}
         suppliedAvailability={[
           {
@@ -81,7 +92,7 @@ describe('SchedulePage', () => {
 
     expect(screen.getByText('입력 완료')).toBeInTheDocument()
     expect(screen.getByText('2026.09.14 10:00')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '수정하기' }))
+    await user.click(screen.getAllByRole('button', { name: '수정하기' })[0])
     expect(screen.getByRole('button', { name: '9/14 (월) 09:00' }))
       .toHaveAttribute('aria-pressed', 'true')
   })
