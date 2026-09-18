@@ -9,11 +9,11 @@ import {
 
 type MemberLoadState = 'loading' | 'ready' | 'error'
 
-/** Google Sheets API와 주간 일정 화면의 조회·저장 상태를 연결한다. */
+/** Aster API와 주간 일정 화면의 조회·저장 상태를 연결한다. */
 export default function App() {
   const [schedule, setSchedule] = useState<CurrentSchedule | null>(null)
   const [memberLoadState, setMemberLoadState] = useState<MemberLoadState>('loading')
-  const endpoint = import.meta.env.VITE_MEMBERS_API_URL
+  const endpoint = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
   const requestMembers = useCallback((signal?: AbortSignal) => {
     const request = endpoint
@@ -40,7 +40,7 @@ export default function App() {
     void requestMembers()
   }
 
-  const saveSchedule = async (memberId: string, slots: ScheduleSlot[]) => {
+  const saveSchedule = async (memberId: number, slots: ScheduleSlot[]) => {
     if (!endpoint || !schedule) throw new Error('일정 API가 준비되지 않았습니다.')
     await saveMemberSchedule(endpoint, memberId, schedule.weekStart, slots)
     setSchedule(await fetchCurrentSchedule(endpoint))

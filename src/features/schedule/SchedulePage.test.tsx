@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import SchedulePage from './SchedulePage'
 
 const testMember = {
-  id: 'test-1',
+  id: 1,
   name: '김철수',
   server: '루페온',
   position: 'MT' as const,
@@ -65,15 +65,13 @@ describe('SchedulePage', () => {
     render(
       <SchedulePage
         suppliedMembers={[
-          { id: 'one', name: '연동 팀원', server: '테스트', position: 'MT', status: '미입력', updated: '-' },
+          { id: 1, name: '연동 팀원', server: '테스트', position: 'MT', status: '입력 완료', updated: '2026-09-14T10:00:00+09:00' },
         ]}
         suppliedAvailability={[
           {
-            memberId: 'one',
+            memberId: 1,
             date: '2026-09-14',
             slots: ['09:00'],
-            updatedAt: '2026-09-14T10:00:00+09:00',
-            revision: 1,
           },
         ]}
         weekStart="2026-09-14"

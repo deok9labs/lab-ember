@@ -21,7 +21,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     env:
-      VITE_MEMBERS_API_URL: ${{ secrets.MEMBERS_API_URL }}
+      VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -36,7 +36,7 @@ jobs:
         run: npm ci
 
       - name: Verify deployment configuration
-        run: test -n "$VITE_MEMBERS_API_URL"
+        run: test -n "$VITE_API_BASE_URL"
 
       - name: Test
         run: npm test -- --run
