@@ -13,6 +13,7 @@ type MemberLoadState = 'loading' | 'ready' | 'error'
 export default function App() {
   const [schedule, setSchedule] = useState<CurrentSchedule | null>(null)
   const [memberLoadState, setMemberLoadState] = useState<MemberLoadState>('loading')
+  // 동일 출처 /api를 기본값으로 두어 인증 정보나 환경별 host를 frontend bundle에 고정하지 않는다.
   const endpoint = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
   const requestMembers = useCallback((signal?: AbortSignal) => {
@@ -32,6 +33,7 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController()
     void requestMembers(controller.signal)
+    // 화면이 사라진 뒤 완료된 응답이 상태를 갱신하지 않도록 진행 중인 요청을 취소한다.
     return () => controller.abort()
   }, [requestMembers])
 
@@ -43,6 +45,7 @@ export default function App() {
   const saveSchedule = async (memberId: number, slots: ScheduleSlot[]) => {
     if (!endpoint || !schedule) throw new Error('일정 API가 준비되지 않았습니다.')
     await saveMemberSchedule(endpoint, memberId, schedule.weekStart, slots)
+    // 저장 응답을 화면 모델로 추측하지 않고 server가 확정한 입력 상태와 수정 시각을 다시 조회한다.
     setSchedule(await fetchCurrentSchedule(endpoint))
   }
 
