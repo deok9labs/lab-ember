@@ -137,15 +137,29 @@ describe('SchedulePage', () => {
       .toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('24:00 행을 선택할 수 없는 일정 종료 경계로 표시한다', async () => {
+  it('24:00을 다른 시각과 동일한 슬롯으로 선택한다', async () => {
     const user = userEvent.setup()
-    renderSchedulePage()
+    const onSaveSchedule = vi.fn().mockResolvedValue(undefined)
+    render(
+      <SchedulePage
+        suppliedMembers={teamMembers}
+        suppliedAvailability={[]}
+        weekStart="2026-09-14"
+        weekEnd="2026-09-20"
+        onSaveSchedule={onSaveSchedule}
+      />,
+    )
     await user.click(screen.getAllByRole('button', { name: '수정하기' })[0])
 
     expect(screen.getByRole('button', { name: '9/14 (월) 18:00' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '9/14 (월) 23:30' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '9/14 (월) 24:00' })).not.toBeInTheDocument()
-    expect(screen.getAllByLabelText('9/14 (월) 일정 종료')).toHaveLength(2)
+    const midnightSlot = screen.getByRole('button', { name: '9/14 (월) 24:00' })
+    await user.click(midnightSlot)
+    expect(midnightSlot).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: '선택한 일정 저장' }))
+    expect(onSaveSchedule).toHaveBeenCalledWith(1, [
+      { date: '2026-09-14', time: '24:00' },
+    ])
     expect(screen.queryByRole('button', { name: '9/14 (월) 17:30' })).not.toBeInTheDocument()
   })
 

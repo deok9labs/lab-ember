@@ -21,6 +21,10 @@ h1 { margin-bottom: 4px; font-size: clamp(1.55rem, 2.2vw, 2rem); letter-spacing:
 .schedule-grid { display: grid; grid-template-columns: minmax(256px, 3fr) minmax(600px, 10fr); gap: 14px; align-items: start; }
 .panel { border: 1px solid #dce7f4; border-radius: 10px; background: rgba(255,255,255,.95); box-shadow: 0 5px 18px rgba(48, 91, 151, .07); }
 .panel h2 { margin-bottom: 18px; font-size: 1.05rem; }
+.panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.panel-title-row h2 { margin-bottom: 18px; }
+.refresh-indicator { margin-bottom: 18px; color: #647797; font-size: .68rem; visibility: hidden; }
+.refresh-indicator.visible { visibility: visible; }
 .members-panel { grid-column: 1; grid-row: 1; padding: 17px 14px; }
 .members-panel ol { display: grid; gap: 13px; margin: 0; padding: 8px 0 0; list-style: none; }
 .members-panel li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #edf2f8; font-size: .82rem; }
@@ -48,8 +52,6 @@ table { width: 100%; min-width: 610px; border-spacing: 1px; table-layout: fixed;
 thead { position: sticky; top: 0; z-index: 2; }
 th { height: 25px; background: #f5f8fc; font-weight: 700; }
 td { height: 19px; border-radius: 3px; color: #07163b; font-weight: 600; }
-.schedule-end-row th, .schedule-end-row td { color: #8090a9; background: #eef3f8; }
-.schedule-end-row td { font-weight: 500; }
 .level-8 { background: #32bd73; } .level-7 { background: #afe39b; } .level-6, .level-5 { background: #ffe08a; } .level-4, .level-3, .level-2 { background: #ffad8f; } .level-1 { background: #ff8185; } .level-0 { background: #e5edf7; }
 .legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 17px; color: #526589; font-size: .67rem; }
 .legend span { display: flex; align-items: center; gap: 6px; }
@@ -87,7 +89,6 @@ td { height: 19px; border-radius: 3px; color: #07163b; font-weight: 600; }
 .editor-table td.drag-preview { position: relative; background: #d9e9ff; }
 .editor-table td.drag-preview::after { position: absolute; pointer-events: none; content: ""; inset: -1px; border: 1px solid rgba(12,84,190,.62); }
 .editor-table td button:focus-visible { position: relative; z-index: 1; outline: 3px solid #0c1b4d; outline-offset: -3px; }
-.editor-table .schedule-end-row td { color: #7486a5; background: #e8eef6; font-size: .65rem; }
 .editor-footer { display: flex; justify-content: flex-end; gap: 9px; padding: 15px 24px 20px; border-top: 1px solid #e4ebf4; }
 .editor-footer button { min-height: 42px; padding: 0 18px; border-radius: 8px; font-weight: 750; cursor: pointer; }
 .editor-footer button:disabled { cursor: wait; opacity: .62; }

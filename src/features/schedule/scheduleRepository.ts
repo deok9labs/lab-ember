@@ -1,6 +1,5 @@
 const MEMBER_POSITIONS = ['MT', 'ST', 'MH', 'SH', 'D1', 'D2', 'D3', 'D4'] as const
-const FIRST_SLOT_MINUTE = 18 * 60
-const LAST_BOUNDARY_MINUTE = 24 * 60
+const SCHEDULE_TIME_PATTERN = /^(?:18|19|20|21|22|23):(?:00|30)$|^24:00$/
 
 /** Aster API가 지원하는 서버 기준 상대 주차다. */
 export type ScheduleWeek = 'current' | 'next'
@@ -44,12 +43,6 @@ type ScheduleApiResponse = {
   weekStart?: unknown
   weekEnd?: unknown
   availability?: unknown
-}
-
-type AvailabilityRangeRequest = {
-  date: string
-  startTime: string
-  endTime: string
 }
 
 /** HTTP 상태와 Aster 오류 코드를 보존해 화면이 복구 방법을 선택할 수 있게 한다. */
@@ -103,7 +96,12 @@ export async function saveMemberSchedule(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       expectedWeekStart,
-      ranges: slotsToRanges(slots),
+      slots: slots.map((slot) => {
+        if (!SCHEDULE_TIME_PATTERN.test(slot.time)) {
+          throw new Error('선택 가능한 일정은 18:00부터 24:00까지입니다.')
+        }
+        return { date: slot.date, slotTime: slot.time }
+      }),
     }),
   })
   if (!response.ok) throw await createApiError(response, '일정 저장 API 요청에 실패했습니다.')
@@ -138,88 +136,19 @@ function parseAvailability(values: unknown[]): AvailabilityEntry[] {
     const entry = value as Record<string, unknown>
     if (typeof entry.memberId !== 'number'
       || typeof entry.date !== 'string'
-      || !Array.isArray(entry.ranges)) {
+      || !Array.isArray(entry.slots)
+      || !entry.slots.every((slot) => (
+        typeof slot === 'string' && SCHEDULE_TIME_PATTERN.test(slot)
+      ))) {
       throw new Error('일정 데이터 형식이 올바르지 않습니다.')
     }
 
-    const slots = entry.ranges.flatMap((range) => rangeToSlots(range))
-    return { memberId: entry.memberId, date: entry.date, slots: [...new Set(slots)].sort() }
-  })
-}
-
-function rangeToSlots(value: unknown): string[] {
-  if (!value || typeof value !== 'object') throw new Error('일정 범위 형식이 올바르지 않습니다.')
-  const range = value as Record<string, unknown>
-  if (typeof range.startTime !== 'string' || typeof range.endTime !== 'string') {
-    throw new Error('일정 범위 형식이 올바르지 않습니다.')
-  }
-
-  const start = parseScheduleMinute(range.startTime)
-  const end = parseScheduleMinute(range.endTime)
-  if (start < FIRST_SLOT_MINUTE || start >= LAST_BOUNDARY_MINUTE || end > LAST_BOUNDARY_MINUTE || start >= end) {
-    throw new Error('일정 범위가 허용 시간을 벗어났습니다.')
-  }
-
-  const slots: string[] = []
-  for (let minute = start; minute < end; minute += 30) slots.push(formatScheduleMinute(minute))
-  return slots
-}
-
-function slotsToRanges(slots: ScheduleSlot[]): AvailabilityRangeRequest[] {
-  const minutesByDate = new Map<string, number[]>()
-  for (const slot of slots) {
-    const minute = parseScheduleMinute(slot.time)
-    if (minute < FIRST_SLOT_MINUTE || minute >= LAST_BOUNDARY_MINUTE) {
-      throw new Error('선택 가능한 일정은 18:00부터 23:30까지입니다.')
+    return {
+      memberId: entry.memberId,
+      date: entry.date,
+      slots: [...new Set(entry.slots as string[])].sort(),
     }
-    const minutes = minutesByDate.get(slot.date) ?? []
-    minutes.push(minute)
-    minutesByDate.set(slot.date, minutes)
-  }
-
-  return [...minutesByDate.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .flatMap(([date, values]) => {
-      const minutes = [...new Set(values)].sort((left, right) => left - right)
-      const ranges: AvailabilityRangeRequest[] = []
-      let start = minutes[0]
-      let previous = start
-
-      for (const minute of minutes.slice(1)) {
-        if (minute !== previous + 30) {
-          ranges.push(toRange(date, start, previous + 30))
-          start = minute
-        }
-        previous = minute
-      }
-      if (start !== undefined) ranges.push(toRange(date, start, previous + 30))
-      return ranges
-    })
-}
-
-function toRange(date: string, start: number, end: number): AvailabilityRangeRequest {
-  return {
-    date,
-    startTime: formatScheduleMinute(start),
-    endTime: formatScheduleMinute(end),
-  }
-}
-
-function parseScheduleMinute(value: string) {
-  const match = /^(\d{2}):(\d{2})$/.exec(value)
-  if (!match) throw new Error('일정 시간 형식이 올바르지 않습니다.')
-  const hour = Number(match[1])
-  const minute = Number(match[2])
-  if ((minute !== 0 && minute !== 30) || hour > 24 || (hour === 24 && minute !== 0)) {
-    throw new Error('일정 시간 형식이 올바르지 않습니다.')
-  }
-  return (hour * 60) + minute
-}
-
-function formatScheduleMinute(value: number) {
-  const hour = Math.floor(value / 60).toString().padStart(2, '0')
-  const minute = (value % 60).toString().padStart(2, '0')
-  return `${hour}:${minute}`
+  })
 }
 
 async function createApiError(response: Response, fallbackMessage: string) {

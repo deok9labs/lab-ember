@@ -1,4 +1,4 @@
-import { slotBoundary } from './scheduleModel'
+import { slotTime } from './scheduleModel'
 
 /** 화면에 표시할 연속 추천 시간 구간이다. */
 export type TimeRecommendation = {
@@ -44,7 +44,7 @@ function collectRanges(
     let startRow: number | null = null
     let rangeCount = 0
 
-    // 마지막 가상 행까지 순회해 24:00까지 이어지는 열린 구간도 동일한 로직으로 닫는다.
+    // 마지막 가상 행까지 순회해 24:00의 열린 구간도 동일한 로직으로 닫는다.
     for (let row = 0; row <= counts.length; row += 1) {
       const count = counts[row]?.[dayIndex] ?? 0
       const continuesRange = startRow !== null && include(count) && count === rangeCount
@@ -53,8 +53,8 @@ function collectRanges(
       if (startRow !== null) {
         recommendations.push({
           dayIndex,
-          startTime: slotBoundary(startRow),
-          endTime: slotBoundary(row),
+          startTime: slotTime(startRow),
+          endTime: slotTime(row - 1),
           count: rangeCount,
         })
         startRow = null

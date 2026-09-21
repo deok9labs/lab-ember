@@ -19,7 +19,6 @@ import {
 import {
   createAvailabilityCounts,
   createMemberSlotSelection,
-  SCHEDULE_END_TIME,
   TEAM_SIZE,
   TIME_SLOTS,
 } from './scheduleModel'
@@ -34,6 +33,7 @@ type SchedulePageProps = {
   onSelectWeek?: (week: ScheduleWeek) => void
   suppliedMembers?: Member[]
   loadState?: 'loading' | 'ready' | 'error'
+  isRefreshing?: boolean
   onRetrySchedule?: () => void
   weekStart?: string
   weekEnd?: string
@@ -47,6 +47,7 @@ export default function SchedulePage({
   onSelectWeek,
   suppliedMembers = [],
   loadState = 'ready',
+  isRefreshing = false,
   onRetrySchedule,
   weekStart,
   weekEnd,
@@ -271,7 +272,15 @@ export default function SchedulePage({
               다음 주
             </button>
           </div>
-          <h2>{weekLabel} 일정</h2>
+          <div className="panel-title-row">
+            <h2>{weekLabel} 일정</h2>
+            <span
+              className={`refresh-indicator ${isRefreshing ? 'visible' : ''}`}
+              role="status"
+            >
+              최신 정보 확인 중
+            </span>
+          </div>
           {scheduleNotice && <p className="schedule-notice" role="status">{scheduleNotice}</p>}
           {loadState !== 'ready' ? (
             <div className={`schedule-state ${loadState === 'error' ? 'error' : ''}`} role="status">
@@ -303,10 +312,6 @@ export default function SchedulePage({
                     ))}
                   </tr>
                 ))}
-                <tr className="schedule-end-row">
-                  <th>{SCHEDULE_END_TIME}</th>
-                  {days.map((day) => <td key={`${day}-end`} aria-label={`${day} 일정 종료`}>—</td>)}
-                </tr>
               </tbody>
             </table>
           </div>}
@@ -336,7 +341,7 @@ export default function SchedulePage({
                 {recommendations.allMembers.map((recommendation) => (
                   <li key={recommendationKey(recommendation)}>
                     <b>{getDayName(days[recommendation.dayIndex])}</b>
-                    {recommendation.startTime} ~ {recommendation.endTime}
+                    {formatRecommendationTime(recommendation)}
                   </li>
                 ))}
               </ul>
@@ -349,7 +354,7 @@ export default function SchedulePage({
                 {recommendations.partial.map((recommendation) => (
                   <li key={recommendationKey(recommendation)}>
                     <b>{getDayName(days[recommendation.dayIndex])}</b>
-                    {recommendation.startTime} ~ {recommendation.endTime} ({recommendation.count}명)
+                    {formatRecommendationTime(recommendation)} ({recommendation.count}명)
                   </li>
                 ))}
               </ul>
@@ -391,4 +396,13 @@ function recommendationKey(recommendation: {
     recommendation.endTime,
     recommendation.count,
   ].join('-')
+}
+
+function formatRecommendationTime(recommendation: {
+  startTime: string
+  endTime: string
+}) {
+  return recommendation.startTime === recommendation.endTime
+    ? recommendation.startTime
+    : `${recommendation.startTime} ~ ${recommendation.endTime}`
 }

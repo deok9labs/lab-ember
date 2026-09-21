@@ -7,7 +7,7 @@ import {
 describe('scheduleRepository', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('선택한 주의 범위 응답을 화면용 30분 슬롯으로 펼친다', async () => {
+  it('선택한 주의 슬롯 응답을 24:00까지 그대로 읽는다', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -20,7 +20,7 @@ describe('scheduleRepository', () => {
         availability: [{
           memberId: 1,
           date: '2026-09-21',
-          ranges: [{ startTime: '21:30', endTime: '24:00' }],
+          slots: ['21:30', '22:00', '24:00'],
         }],
       }),
     })
@@ -36,7 +36,7 @@ describe('scheduleRepository', () => {
       availability: [{
         memberId: 1,
         date: '2026-09-21',
-        slots: ['21:30', '22:00', '22:30', '23:00', '23:30'],
+        slots: ['21:30', '22:00', '24:00'],
       }],
     })
     expect(fetchMock).toHaveBeenCalledWith(
@@ -45,7 +45,7 @@ describe('scheduleRepository', () => {
     )
   })
 
-  it('선택 슬롯을 날짜별 연속 범위로 병합해 다음 주에 저장한다', async () => {
+  it('선택 슬롯을 24:00까지 다음 주에 그대로 저장한다', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -57,7 +57,7 @@ describe('scheduleRepository', () => {
       [
         { date: '2026-09-21', time: '21:30' },
         { date: '2026-09-21', time: '22:00' },
-        { date: '2026-09-21', time: '23:30' },
+        { date: '2026-09-21', time: '24:00' },
       ],
     )
 
@@ -68,16 +68,17 @@ describe('scheduleRepository', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           expectedWeekStart: '2026-09-21',
-          ranges: [
-            { date: '2026-09-21', startTime: '21:30', endTime: '22:30' },
-            { date: '2026-09-21', startTime: '23:30', endTime: '24:00' },
+          slots: [
+            { date: '2026-09-21', slotTime: '21:30' },
+            { date: '2026-09-21', slotTime: '22:00' },
+            { date: '2026-09-21', slotTime: '24:00' },
           ],
         }),
       },
     )
   })
 
-  it('선택을 모두 지우면 빈 범위 목록으로 전체 교체한다', async () => {
+  it('선택을 모두 지우면 빈 슬롯 목록으로 전체 교체한다', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -86,7 +87,7 @@ describe('scheduleRepository', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'https://example.com/api/v1/schedules/current/members/1',
       expect.objectContaining({
-        body: JSON.stringify({ expectedWeekStart: '2026-09-14', ranges: [] }),
+        body: JSON.stringify({ expectedWeekStart: '2026-09-14', slots: [] }),
       }),
     )
   })
