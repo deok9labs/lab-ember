@@ -1,5 +1,5 @@
 import type { Member } from './scheduleRepository'
-import { SCHEDULE_END_TIME, TIME_SLOTS } from './scheduleModel'
+import { TIME_SLOTS } from './scheduleModel'
 
 export type GridPosition = { row: number; column: number }
 
@@ -111,14 +111,6 @@ export default function ScheduleEditor({
                   })}
                 </tr>
               ))}
-              <tr className="schedule-end-row">
-                <th>{SCHEDULE_END_TIME}</th>
-                {days.map((day) => (
-                  <td key={`${day}-end`} aria-label={`${day} 일정 종료`}>
-                    <span aria-hidden="true">종료</span>
-                  </td>
-                ))}
-              </tr>
             </tbody>
           </table>
         </div>
