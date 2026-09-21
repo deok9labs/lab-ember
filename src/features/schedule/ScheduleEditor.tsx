@@ -1,5 +1,5 @@
 import type { Member } from './scheduleRepository'
-import { TIME_SLOTS } from './scheduleModel'
+import { SCHEDULE_END_TIME, TIME_SLOTS } from './scheduleModel'
 
 export type GridPosition = { row: number; column: number }
 
@@ -9,6 +9,7 @@ type ScheduleEditorProps = {
   dayDates: string[]
   selectedSlots: Set<string>
   saveState: 'idle' | 'saving' | 'error'
+  weekLabel: string
   isInsideDragRectangle: (row: number, column: number) => boolean
   onStartDrag: (position: GridPosition) => void
   onContinueDrag: (position: GridPosition) => void
@@ -24,6 +25,7 @@ export default function ScheduleEditor({
   dayDates,
   selectedSlots,
   saveState,
+  weekLabel,
   isInsideDragRectangle,
   onStartDrag,
   onContinueDrag,
@@ -62,7 +64,7 @@ export default function ScheduleEditor({
               저장하지 못했습니다. 다시 시도해 주세요.
             </span>
           ) : (
-            <span>30분 단위 · 이번 주에만 적용</span>
+            <span>30분 단위 · {weekLabel} 일정에 적용</span>
           )}
         </div>
 
@@ -109,6 +111,14 @@ export default function ScheduleEditor({
                   })}
                 </tr>
               ))}
+              <tr className="schedule-end-row">
+                <th>{SCHEDULE_END_TIME}</th>
+                {days.map((day) => (
+                  <td key={`${day}-end`} aria-label={`${day} 일정 종료`}>
+                    <span aria-hidden="true">종료</span>
+                  </td>
+                ))}
+              </tr>
             </tbody>
           </table>
         </div>

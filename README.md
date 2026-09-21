@@ -10,7 +10,7 @@ Aster API의 팀원별 주간 가능 시간을 표시하고 편집하는 React �
 VITE_API_BASE_URL=/api
 ```
 
-API가 다른 주소에 있다면 `.env.example`을 참고해 `.env.local`의 값을 변경합니다. API 주소에는 `/api`까지 포함하고 `/v1/schedules/current`는 포함하지 않습니다.
+API가 다른 주소에 있다면 `.env.example`을 참고해 `.env.local`의 값을 변경합니다. API 주소에는 `/api`까지 포함하고 `/v1/schedules/{current|next}`는 포함하지 않습니다.
 
 PowerShell에서는 다음 명령으로 실행합니다.
 
