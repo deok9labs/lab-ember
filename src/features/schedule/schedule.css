@@ -14,6 +14,10 @@ h1 { margin-bottom: 4px; font-size: clamp(1.55rem, 2.2vw, 2rem); letter-spacing:
 .countdown { display: grid; min-height: 72px; place-content: center; gap: 5px; border-radius: 12px; background: #eaf2fd; text-align: center; }
 .countdown strong { font-size: 1.35rem; }
 .countdown span { color: #526589; font-size: .76rem; }
+.week-tabs { position: absolute; bottom: 100%; left: -1px; display: flex; align-items: flex-end; gap: 5px; }
+.week-tabs button { min-width: 92px; min-height: 35px; padding: 0 16px; border: 1px solid #d4e0ef; border-bottom: 0; border-radius: 9px 9px 0 0; color: #526589; background: #e9f0f9; font-weight: 750; cursor: pointer; }
+.week-tabs button[aria-selected="true"] { min-height: 40px; margin-bottom: -1px; color: #145fc8; background: #fff; box-shadow: 0 -4px 12px rgba(48,91,151,.08); }
+.week-tabs button:focus-visible { outline: 3px solid rgba(36,114,237,.25); outline-offset: 2px; }
 .schedule-grid { display: grid; grid-template-columns: minmax(256px, 3fr) minmax(600px, 10fr); gap: 14px; align-items: start; }
 .panel { border: 1px solid #dce7f4; border-radius: 10px; background: rgba(255,255,255,.95); box-shadow: 0 5px 18px rgba(48, 91, 151, .07); }
 .panel h2 { margin-bottom: 18px; font-size: 1.05rem; }
@@ -35,12 +39,17 @@ h1 { margin-bottom: 4px; font-size: clamp(1.55rem, 2.2vw, 2rem); letter-spacing:
 .member-actions button:hover { border-color: #2472ed; background: #edf5ff; }
 .member-actions button:focus-visible { outline: 3px solid rgba(36,114,237,.25); outline-offset: 2px; }
 .members-panel time { grid-column: 2 / 4; margin-top: -9px; color: #7486a5; font-size: .64rem; text-align: right; }
-.availability-panel { grid-column: 2; grid-row: 1 / span 2; min-width: 0; padding: 16px 14px; }
+.availability-panel { position: relative; grid-column: 2; grid-row: 1 / span 2; min-width: 0; margin-top: 40px; padding: 16px 14px; }
+.schedule-notice { margin: -6px 0 12px; padding: 9px 11px; border-radius: 7px; color: #765408; background: #fff4cf; font-size: .74rem; }
+.schedule-state { display: grid; min-height: 220px; place-items: center; border: 1px dashed #d6e1ef; border-radius: 7px; color: #647797; background: #f9fbfe; font-size: .8rem; }
+.schedule-state.error { color: #a03a45; background: #fff8f8; }
 .table-scroll { max-height: min(70vh, 720px); overflow: auto; border: 1px solid #e4ebf4; border-radius: 6px; }
 table { width: 100%; min-width: 610px; border-spacing: 1px; table-layout: fixed; font-size: .65rem; text-align: center; }
 thead { position: sticky; top: 0; z-index: 2; }
 th { height: 25px; background: #f5f8fc; font-weight: 700; }
 td { height: 19px; border-radius: 3px; color: #07163b; font-weight: 600; }
+.schedule-end-row th, .schedule-end-row td { color: #8090a9; background: #eef3f8; }
+.schedule-end-row td { font-weight: 500; }
 .level-8 { background: #32bd73; } .level-7 { background: #afe39b; } .level-6, .level-5 { background: #ffe08a; } .level-4, .level-3, .level-2 { background: #ffad8f; } .level-1 { background: #ff8185; } .level-0 { background: #e5edf7; }
 .legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 17px; color: #526589; font-size: .67rem; }
 .legend span { display: flex; align-items: center; gap: 6px; }
@@ -49,6 +58,7 @@ td { height: 19px; border-radius: 3px; color: #07163b; font-weight: 600; }
 .recommendations > h2 { margin-bottom: 8px; }
 .recommendations > h2 span { color: #f4b629; }
 .recommendations > p { color: #526589; font-size: .75rem; line-height: 1.5; }
+.recommendations .recommendation-state { margin-top: 14px; padding: 14px 10px; border: 1px dashed #d6e1ef; border-radius: 7px; text-align: center; }
 .recommend-box { margin: 11px 0; overflow: hidden; border-radius: 8px; background: #f0faf5; }
 .recommend-box h3 { margin: 0; padding: 11px 12px; color: #078c42; background: #e0f7ec; font-size: .92rem; }
 .recommend-box ul { display: grid; gap: 9px; margin: 0; padding: 11px 14px 12px 35px; font-size: .76rem; }
@@ -77,6 +87,7 @@ td { height: 19px; border-radius: 3px; color: #07163b; font-weight: 600; }
 .editor-table td.drag-preview { position: relative; background: #d9e9ff; }
 .editor-table td.drag-preview::after { position: absolute; pointer-events: none; content: ""; inset: -1px; border: 1px solid rgba(12,84,190,.62); }
 .editor-table td button:focus-visible { position: relative; z-index: 1; outline: 3px solid #0c1b4d; outline-offset: -3px; }
+.editor-table .schedule-end-row td { color: #7486a5; background: #e8eef6; font-size: .65rem; }
 .editor-footer { display: flex; justify-content: flex-end; gap: 9px; padding: 15px 24px 20px; border-top: 1px solid #e4ebf4; }
 .editor-footer button { min-height: 42px; padding: 0 18px; border-radius: 8px; font-weight: 750; cursor: pointer; }
 .editor-footer button:disabled { cursor: wait; opacity: .62; }
