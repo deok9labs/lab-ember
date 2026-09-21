@@ -5,6 +5,7 @@ import type {
   Member,
   ScheduleSlot,
 } from './scheduleRepository'
+import { ScheduleApiError, type ScheduleWeek } from './scheduleRepository'
 import { createRecommendations } from './recommendations'
 import {
   addDays,
@@ -28,31 +29,37 @@ type DragSelection = {
 }
 
 type SchedulePageProps = {
+  selectedWeek?: ScheduleWeek
+  onSelectWeek?: (week: ScheduleWeek) => void
   suppliedMembers?: Member[]
-  memberLoadState?: 'loading' | 'ready' | 'error'
-  onRetryMembers?: () => void
+  loadState?: 'loading' | 'ready' | 'error'
+  isRefreshing?: boolean
+  onRetrySchedule?: () => void
   weekStart?: string
   weekEnd?: string
   suppliedAvailability?: AvailabilityEntry[]
   onSaveSchedule?: (memberId: number, slots: ScheduleSlot[]) => Promise<void>
 }
 
-/** 현재 주의 팀원별 가능 시간과 추천 구간을 표시하고 편집한다. */
+/** 선택한 주의 팀원별 가능 시간과 추천 구간을 같은 화면에서 표시하고 편집한다. */
 export default function SchedulePage({
+  selectedWeek = 'current',
+  onSelectWeek,
   suppliedMembers = [],
-  memberLoadState = 'ready',
-  onRetryMembers,
+  loadState = 'ready',
+  isRefreshing = false,
+  onRetrySchedule,
   weekStart,
   weekEnd,
   suppliedAvailability,
   onSaveSchedule,
 }: SchedulePageProps = {}) {
-  const [memberUpdates, setMemberUpdates] = useState<Record<number, Partial<Member>>>({})
   const [editingMember, setEditingMember] = useState<Member | null>(null)
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set())
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'error'>('idle')
   const [dragStart, setDragStart] = useState<GridPosition | null>(null)
   const [dragEnd, setDragEnd] = useState<GridPosition | null>(null)
+  const [scheduleNotice, setScheduleNotice] = useState<string | null>(null)
   const dragSelection = useRef<DragSelection | null>(null)
 
   useEffect(() => {
@@ -77,17 +84,23 @@ export default function SchedulePage({
     { length: 7 },
     (_, index) => addDays(displayedWeekStart, index),
   )
-  const members = suppliedMembers.map((member) => ({
-    ...member,
-    ...memberUpdates[member.id],
-  }))
+  const members = suppliedMembers
   const availability = createAvailabilityCounts(suppliedAvailability, dayDates)
   const recommendations = createRecommendations(availability, TEAM_SIZE)
-  const teamSizeMismatch = memberLoadState === 'ready'
+  const teamSizeMismatch = loadState === 'ready'
     && members.length > 0
     && members.length !== TEAM_SIZE
   const weekTitle = `${formatKoreanDate(displayedWeekStart)} ~ ${formatKoreanDate(displayedWeekEnd)}`
   const remainingDays = getRemainingDays(displayedWeekEnd)
+  const weekLabel = selectedWeek === 'current' ? '이번 주' : '다음 주'
+
+  const selectWeek = (week: ScheduleWeek) => {
+    setEditingMember(null)
+    setSelectedSlots(new Set())
+    setSaveState('idle')
+    setScheduleNotice(null)
+    onSelectWeek?.(week)
+  }
 
   const openEditor = (member: Member) => {
     setEditingMember(member)
@@ -161,13 +174,15 @@ export default function SchedulePage({
         })
         await onSaveSchedule(editingMember.id, slots)
       }
-      setMemberUpdates((current) => ({
-        ...current,
-        [editingMember.id]: { submitted: true, updatedAt: new Date().toISOString() },
-      }))
       setEditingMember(null)
       setSaveState('idle')
-    } catch {
+    } catch (error) {
+      if (error instanceof ScheduleApiError && error.code === 'SCHEDULE_WEEK_MISMATCH') {
+        setEditingMember(null)
+        setSaveState('idle')
+        setScheduleNotice('주차가 변경되어 최신 일정을 다시 불러왔습니다. 일정을 다시 확인해 주세요.')
+        return
+      }
       setSaveState('error')
     }
   }
@@ -189,11 +204,11 @@ export default function SchedulePage({
         </div>
         <div className="week-summary">
           <strong>{weekTitle}</strong>
-          <span>이번 주가 지나면 모든 일정이 초기화됩니다.</span>
+          <span>{weekLabel} 일정 기간을 표시하고 있습니다.</span>
         </div>
         <div className="countdown">
           <strong>D-{remainingDays}</strong>
-          <span>이번 주 종료</span>
+          <span>{weekLabel} 종료</span>
         </div>
       </header>
 
@@ -201,24 +216,24 @@ export default function SchedulePage({
           <article className="panel members-panel">
             <h2>팀원</h2>
             <ol>
-              {memberLoadState === 'loading' && (
-                <li className="member-message">팀원 목록을 불러오는 중입니다.</li>
+              {loadState === 'loading' && (
+                <li className="member-message">{weekLabel} 일정을 불러오는 중입니다.</li>
               )}
-              {memberLoadState === 'error' && (
+              {loadState === 'error' && (
                 <li className="member-message member-error">
-                  <span>팀원 목록을 불러오지 못했습니다.</span>
-                  {onRetryMembers && (
-                    <button type="button" onClick={onRetryMembers}>다시 시도</button>
+                  <span>{weekLabel} 일정을 불러오지 못했습니다.</span>
+                  {onRetrySchedule && (
+                    <button type="button" onClick={onRetrySchedule}>다시 시도</button>
                   )}
                 </li>
               )}
-              {memberLoadState === 'ready' && members.length === 0 && (
+              {loadState === 'ready' && members.length === 0 && (
                 <li className="member-message">표시할 팀원이 없습니다.</li>
               )}
               {teamSizeMismatch && (
                 <li className="member-message member-error">팀원 데이터는 {TEAM_SIZE}명이어야 합니다.</li>
               )}
-              {memberLoadState === 'ready' && members.map((member) => (
+              {loadState === 'ready' && members.map((member) => (
                 <li key={member.id}>
                   <span className={`member-position position-${member.position.toLowerCase()}`}>{member.position}</span>
                   <strong>{member.name}@{member.server}</strong>
@@ -239,8 +254,41 @@ export default function SchedulePage({
           </article>
 
         <article className="panel availability-panel">
-          <h2>이번 주 일정</h2>
-          <div className="table-scroll">
+          <div className="week-tabs" role="tablist" aria-label="일정 주 선택">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedWeek === 'current'}
+              onClick={() => selectWeek('current')}
+            >
+              이번 주
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedWeek === 'next'}
+              onClick={() => selectWeek('next')}
+            >
+              다음 주
+            </button>
+          </div>
+          <div className="panel-title-row">
+            <h2>{weekLabel} 일정</h2>
+            <span
+              className={`refresh-indicator ${isRefreshing ? 'visible' : ''}`}
+              role="status"
+            >
+              최신 정보 확인 중
+            </span>
+          </div>
+          {scheduleNotice && <p className="schedule-notice" role="status">{scheduleNotice}</p>}
+          {loadState !== 'ready' ? (
+            <div className={`schedule-state ${loadState === 'error' ? 'error' : ''}`} role="status">
+              {loadState === 'loading'
+                ? `${weekLabel} 시간표를 불러오는 중입니다.`
+                : `${weekLabel} 시간표를 표시할 수 없습니다.`}
+            </div>
+          ) : <div className="table-scroll">
             <table aria-label="팀 가용 시간표">
               <thead>
                 <tr>
@@ -266,15 +314,15 @@ export default function SchedulePage({
                 ))}
               </tbody>
             </table>
-          </div>
-          <div className="legend">
+          </div>}
+          {loadState === 'ready' && <div className="legend">
             <span><i className="level-8" />8명 가능</span>
             <span><i className="level-7" />6~7명</span>
             <span><i className="level-5" />4~5명</span>
             <span><i className="level-3" />2~3명</span>
             <span><i className="level-1" />1명</span>
             <span><i className="level-0" />0명 (없음)</span>
-          </div>
+          </div>}
         </article>
 
         <aside className="panel recommendations">
@@ -284,14 +332,16 @@ export default function SchedulePage({
           <p>
             전원이 가능한 시간과 두 명 이상이 겹치는 시간을 보여줍니다.
           </p>
-          <section className="recommend-box all">
+          {loadState !== 'ready' ? (
+            <p className="recommendation-state">일정을 불러온 뒤 추천 시간을 표시합니다.</p>
+          ) : <><section className="recommend-box all">
             <h3>{TEAM_SIZE}명 모두 가능</h3>
             {recommendations.allMembers.length > 0 ? (
               <ul>
                 {recommendations.allMembers.map((recommendation) => (
                   <li key={recommendationKey(recommendation)}>
                     <b>{getDayName(days[recommendation.dayIndex])}</b>
-                    {recommendation.startTime} ~ {recommendation.endTime}
+                    {formatRecommendationTime(recommendation)}
                   </li>
                 ))}
               </ul>
@@ -304,12 +354,13 @@ export default function SchedulePage({
                 {recommendations.partial.map((recommendation) => (
                   <li key={recommendationKey(recommendation)}>
                     <b>{getDayName(days[recommendation.dayIndex])}</b>
-                    {recommendation.startTime} ~ {recommendation.endTime} ({recommendation.count}명)
+                    {formatRecommendationTime(recommendation)} ({recommendation.count}명)
                   </li>
                 ))}
               </ul>
             ) : <p className="empty-recommendation">2명 이상 겹치는 시간이 없습니다.</p>}
           </section>
+          </>}
         </aside>
       </section>
 
@@ -320,6 +371,7 @@ export default function SchedulePage({
           dayDates={dayDates}
           selectedSlots={selectedSlots}
           saveState={saveState}
+          weekLabel={weekLabel}
           isInsideDragRectangle={isInsideDragRectangle}
           onStartDrag={startSlotDrag}
           onContinueDrag={continueSlotDrag}
@@ -344,4 +396,13 @@ function recommendationKey(recommendation: {
     recommendation.endTime,
     recommendation.count,
   ].join('-')
+}
+
+function formatRecommendationTime(recommendation: {
+  startTime: string
+  endTime: string
+}) {
+  return recommendation.startTime === recommendation.endTime
+    ? recommendation.startTime
+    : `${recommendation.startTime} ~ ${recommendation.endTime}`
 }

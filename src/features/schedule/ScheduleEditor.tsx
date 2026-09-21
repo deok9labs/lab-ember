@@ -9,6 +9,7 @@ type ScheduleEditorProps = {
   dayDates: string[]
   selectedSlots: Set<string>
   saveState: 'idle' | 'saving' | 'error'
+  weekLabel: string
   isInsideDragRectangle: (row: number, column: number) => boolean
   onStartDrag: (position: GridPosition) => void
   onContinueDrag: (position: GridPosition) => void
@@ -24,6 +25,7 @@ export default function ScheduleEditor({
   dayDates,
   selectedSlots,
   saveState,
+  weekLabel,
   isInsideDragRectangle,
   onStartDrag,
   onContinueDrag,
@@ -62,7 +64,7 @@ export default function ScheduleEditor({
               저장하지 못했습니다. 다시 시도해 주세요.
             </span>
           ) : (
-            <span>30분 단위 · 이번 주에만 적용</span>
+            <span>30분 단위 · {weekLabel} 일정에 적용</span>
           )}
         </div>
 

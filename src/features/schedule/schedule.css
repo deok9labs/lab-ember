@@ -14,9 +14,17 @@ h1 { margin-bottom: 4px; font-size: clamp(1.55rem, 2.2vw, 2rem); letter-spacing:
 .countdown { display: grid; min-height: 72px; place-content: center; gap: 5px; border-radius: 12px; background: #eaf2fd; text-align: center; }
 .countdown strong { font-size: 1.35rem; }
 .countdown span { color: #526589; font-size: .76rem; }
+.week-tabs { position: absolute; bottom: 100%; left: -1px; display: flex; align-items: flex-end; gap: 5px; }
+.week-tabs button { min-width: 92px; min-height: 35px; padding: 0 16px; border: 1px solid #d4e0ef; border-bottom: 0; border-radius: 9px 9px 0 0; color: #526589; background: #e9f0f9; font-weight: 750; cursor: pointer; }
+.week-tabs button[aria-selected="true"] { min-height: 40px; margin-bottom: -1px; color: #145fc8; background: #fff; box-shadow: 0 -4px 12px rgba(48,91,151,.08); }
+.week-tabs button:focus-visible { outline: 3px solid rgba(36,114,237,.25); outline-offset: 2px; }
 .schedule-grid { display: grid; grid-template-columns: minmax(256px, 3fr) minmax(600px, 10fr); gap: 14px; align-items: start; }
 .panel { border: 1px solid #dce7f4; border-radius: 10px; background: rgba(255,255,255,.95); box-shadow: 0 5px 18px rgba(48, 91, 151, .07); }
 .panel h2 { margin-bottom: 18px; font-size: 1.05rem; }
+.panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.panel-title-row h2 { margin-bottom: 18px; }
+.refresh-indicator { margin-bottom: 18px; color: #647797; font-size: .68rem; visibility: hidden; }
+.refresh-indicator.visible { visibility: visible; }
 .members-panel { grid-column: 1; grid-row: 1; padding: 17px 14px; }
 .members-panel ol { display: grid; gap: 13px; margin: 0; padding: 8px 0 0; list-style: none; }
 .members-panel li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #edf2f8; font-size: .82rem; }
@@ -35,7 +43,10 @@ h1 { margin-bottom: 4px; font-size: clamp(1.55rem, 2.2vw, 2rem); letter-spacing:
 .member-actions button:hover { border-color: #2472ed; background: #edf5ff; }
 .member-actions button:focus-visible { outline: 3px solid rgba(36,114,237,.25); outline-offset: 2px; }
 .members-panel time { grid-column: 2 / 4; margin-top: -9px; color: #7486a5; font-size: .64rem; text-align: right; }
-.availability-panel { grid-column: 2; grid-row: 1 / span 2; min-width: 0; padding: 16px 14px; }
+.availability-panel { position: relative; grid-column: 2; grid-row: 1 / span 2; min-width: 0; margin-top: 40px; padding: 16px 14px; }
+.schedule-notice { margin: -6px 0 12px; padding: 9px 11px; border-radius: 7px; color: #765408; background: #fff4cf; font-size: .74rem; }
+.schedule-state { display: grid; min-height: 220px; place-items: center; border: 1px dashed #d6e1ef; border-radius: 7px; color: #647797; background: #f9fbfe; font-size: .8rem; }
+.schedule-state.error { color: #a03a45; background: #fff8f8; }
 .table-scroll { max-height: min(70vh, 720px); overflow: auto; border: 1px solid #e4ebf4; border-radius: 6px; }
 table { width: 100%; min-width: 610px; border-spacing: 1px; table-layout: fixed; font-size: .65rem; text-align: center; }
 thead { position: sticky; top: 0; z-index: 2; }
@@ -49,6 +60,7 @@ td { height: 19px; border-radius: 3px; color: #07163b; font-weight: 600; }
 .recommendations > h2 { margin-bottom: 8px; }
 .recommendations > h2 span { color: #f4b629; }
 .recommendations > p { color: #526589; font-size: .75rem; line-height: 1.5; }
+.recommendations .recommendation-state { margin-top: 14px; padding: 14px 10px; border: 1px dashed #d6e1ef; border-radius: 7px; text-align: center; }
 .recommend-box { margin: 11px 0; overflow: hidden; border-radius: 8px; background: #f0faf5; }
 .recommend-box h3 { margin: 0; padding: 11px 12px; color: #078c42; background: #e0f7ec; font-size: .92rem; }
 .recommend-box ul { display: grid; gap: 9px; margin: 0; padding: 11px 14px 12px 35px; font-size: .76rem; }

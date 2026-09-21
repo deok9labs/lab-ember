@@ -3,11 +3,16 @@ import type { AvailabilityEntry } from './scheduleRepository'
 /** 일정 추천과 범례가 전제로 하는 고정 팀원 수다. */
 export const TEAM_SIZE = 8
 
-/** 하루 전체를 표현하는 30분 단위 슬롯이다. */
-export const TIME_SLOTS = Array.from({ length: 48 }, (_, index) => {
-  const hour = Math.floor(index / 2).toString().padStart(2, '0')
-  return `${hour}:${index % 2 === 0 ? '00' : '30'}`
-})
+/** 실제로 선택하고 저장할 수 있는 18:00~24:00의 30분 단위 시각이다. */
+export const TIME_SLOTS = Array.from({ length: 13 }, (_, index) => slotTime(index))
+
+/** 슬롯 index가 가리키는 선택 시각을 반환한다. */
+export function slotTime(index: number) {
+  const totalMinutes = (18 * 60) + (index * 30)
+  const hour = Math.floor(totalMinutes / 60).toString().padStart(2, '0')
+  const minute = (totalMinutes % 60).toString().padStart(2, '0')
+  return `${hour}:${minute}`
+}
 
 /** API의 팀원별 일정을 시간표가 사용하는 슬롯별 가용 인원수로 변환한다. */
 export function createAvailabilityCounts(
